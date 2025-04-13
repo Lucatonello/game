@@ -8,6 +8,11 @@ gravity = 0.3;
 let keys = {};
 let projectiles = [];
 
+const world = {
+    width: 3000,
+    height: canvas.height,
+};
+
 const player = {
     x: 100,
     y: 300,
@@ -33,7 +38,7 @@ const player = {
 let enemyHeight = Math.floor(Math.random() * (70 - 25 + 1)) + 25;
 
 const enemy = {
-    x: Math.floor(Math.random() * (730 - 0 + 1)) + 30,
+    x: Math.floor(Math.random() * (730 - 450 + 1)) + 450,
     y: 0,
     width: Math.floor(Math.random() * (50 - 30 + 1)) + 30,
     height: enemyHeight,
@@ -48,9 +53,14 @@ const enemy = {
 const platform = {
     x: 0,
     y: 550,
-    width: canvas.width,
+    width: world.width,
     height: 50,
     color: '#444',
+};
+
+let camera = {
+    x: 0,
+    y: 0
 };
 
 document.addEventListener("keydown", (e) => {
@@ -73,6 +83,7 @@ document.addEventListener("keyup", (e) => {
 });
 
 function update() {
+    console.log(enemy.x)
 
     //pleyer movement
 
@@ -103,11 +114,18 @@ function update() {
     player.weapon.x = player.x + player.width;
     player.weapon.y = player.y + (player.height / 2);
 
+    //camera tracking
+
+    camera.x = player.x - canvas.width / 2 + player.width / 2;
+
+    if (camera.x < 0) camera.x = 0;
+    if (camera.x + canvas.width > world.width) camera.x = world.width - canvas.width;
+
 
     //prevent player from falling down platform
 
     if (player.x < 0) player.x = 0;
-    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+    if (player.x + player.width > world.width) player.x = world.width - player.width;
 
     if (player.y + player.height > canvas.height) {
         player.y = canvas.height - player.height;
@@ -130,7 +148,7 @@ function update() {
     //prevent enemies from falling down platform
 
     if (enemy.x < 0) enemy.x = 0;
-    if (enemy.x + enemy.width > canvas.width) enemy.x = canvas.width - enemy.width;
+    if (enemy.x + enemy.width > world.width) enemy.x = world.width - enemy.width;
 
     if (enemy.y + enemy.height > canvas.height) {
         enemy.y = canvas.height - enemy.height;
@@ -162,12 +180,20 @@ function update() {
             proj.y + proj.height > enemy.y
         ) {
             enemy.hp -= player.weapon.damage;
+            console.log(enemy.hp);
             projectiles.splice(i, 1);
             i--
-        } else if (proj.x > canvas.width) {
+        } else if (proj.x > world.width) {
             projectiles.splice(i, 1);
             i--
         }
+    }
+
+    if (enemy.hp <= 0) {
+        enemy.x = -100; 
+        enemy.y = -100;
+        enemy.velX = 0;
+        enemy.velY = 0;
     }
 
     draw()
@@ -178,26 +204,28 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = platform.color;
-    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    ctx.fillRect(platform.x - camera.x, platform.y - camera.y, platform.width, platform.height);
 
     ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    ctx.fillRect(player.x - camera.x, player.y - camera.y, player.width, player.height);
 
     ctx.fillStyle = player.weapon.color;
-    ctx.fillRect(player.weapon.x, player.weapon.y, player.weapon.width, player.weapon.height);
-
+    ctx.fillRect(player.weapon.x - camera.x, player.weapon.y - camera.y, player.weapon.width, player.weapon.height);
+    
     ctx.fillStyle = enemy.color;
-    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+    ctx.fillRect(enemy.x - camera.x, enemy.y - camera.y, enemy.width, enemy.height);
+
     for (const proj of projectiles) {
         ctx.fillStyle = proj.color;
-        ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+        ctx.fillRect(proj.x - camera.x, proj.y - camera.y, proj.width, proj.height);
     }
+
     const hpBarWidth = enemy.width;
     const hpPercent = enemy.hp / (enemyHeight < 40 ? 50 : enemyHeight < 55 ? 75 : 100);
     ctx.fillStyle = "#000";
-    ctx.fillRect(enemy.x, enemy.y - 10, hpBarWidth, 5);
+    ctx.fillRect(enemy.x - camera.x, enemy.y - 10 - camera.y, hpBarWidth, 5);
     ctx.fillStyle = "#0f0";
-    ctx.fillRect(enemy.x, enemy.y - 10, hpBarWidth * hpPercent, 5);
+    ctx.fillRect(enemy.x - camera.x, enemy.y - 10 - camera.y, hpBarWidth * hpPercent, 5);
 }
 
 update()
